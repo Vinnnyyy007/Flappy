@@ -30,6 +30,17 @@ SHIELD_COLOR = (60, 180, 255)
 SLOWMO_COLOR = (255, 165, 0)
 CLOAK_COLOR = (148, 0, 211)
 
+# Ranks & Levels
+LEVELS = [
+    ("USER TOKEN", 10, CLOAK_COLOR),
+    ("PRIVILEGE ESC", 25, GREEN),
+    ("BRONZE EXPLOIT", 60, (205, 127, 50)),
+    ("SILVER ROOTKIT", 100, (192, 192, 192)),
+    ("GOLDEN ZERODAY", 150, (255, 215, 0)),
+    ("PLATINUM BREACH", 200, (229, 228, 226)),
+    ("MASTER PWNER", 250, PINK)
+]
+
 # Player
 player_x, player_y = 75, SCREEN_H // 2
 player_rad = 14
@@ -96,23 +107,23 @@ def draw_text(text, font, color, surf, x, y, center=True):
     if not center and x > SCREEN_W / 2: rect.topright = (x,y)
     surf.blit(obj, rect)
 
-def draw_rain(surf):
-    for i, col_y in enumerate(rain_cols):
-        x = int(i * (SCREEN_W / len(rain_cols)))
-        length = random.randint(6, 22)
-        for j in range(length):
-            alpha = max(30, 255 - j * 12)
-            s = pygame.Surface((4, 4), pygame.SRCALPHA)
-            s.fill((0, 255, 140, alpha))
-            surf.blit(s, (x + random.randint(-2, 2), (col_y + j * 6) % SCREEN_H))
-        rain_cols[i] = (col_y + random.randint(2, 8)) % (SCREEN_H + 200)
+def get_level_info(s):
+    current_rank = ("NOVICE", 0, WHITE)
+    next_rank = LEVELS[0]
+    prev_threshold = 0
 
-def draw_scanlines(surf, t):
-    for y in range(0, SCREEN_H, 6):
-        if (y + t) % 12 < 2:
-            s = pygame.Surface((SCREEN_W, 2), pygame.SRCALPHA)
-            s.fill((20, 20, 40, 20))
-            surf.blit(s, (0, y))
+    for i, (name, threshold, color) in enumerate(LEVELS):
+        if s >= threshold:
+            current_rank = (name, threshold, color)
+            prev_threshold = threshold
+            if i + 1 < len(LEVELS):
+                next_rank = LEVELS[i+1]
+            else:
+                next_rank = ("LEGEND", threshold + 50, BLUE)
+        else:
+            next_rank = (name, threshold, color)
+            break
+    return current_rank, next_rank, prev_threshold
 
 def draw_player(x, y):
     pygame.draw.circle(screen, PINK, (int(x), int(y)), player_rad + 2)
@@ -148,11 +159,18 @@ def draw_hud(s, hs):
     screen.blit(hud, (0, 0))
     draw_text(f"ACCESS LVL {s}", font_med, GREEN, screen, 12, 10, False)
     draw_text(f"HIGH {hs}", font_small, WHITE, screen, SCREEN_W - 12, 12, False)
-    pct = min(s / 60.0, 1.0)
+    
+    _, next_rank, prev_threshold = get_level_info(s)
+    next_rank_name, next_rank_score, _ = next_rank
+    
+    denominator = next_rank_score - prev_threshold
+    pct = (s - prev_threshold) / denominator if denominator > 0 else 1.0
+    pct = min(pct, 1.0)
+
     bar_w = SCREEN_W - 40
     pygame.draw.rect(screen, (40,40,40), (20, 40, bar_w, 12))
     pygame.draw.rect(screen, BLUE, (20, 40, int(bar_w * pct), 12))
-    draw_text("EXFIL PROGRESS", font_small, WHITE, screen, SCREEN_W // 2, 65)
+    draw_text(f"NEXT RANK: {next_rank_name}", font_small, WHITE, screen, SCREEN_W // 2, 65)
 
 # Game Logic
 def create_pipe():
@@ -293,11 +311,13 @@ while running:
         draw_text("FLAPPY PWN", font_big, PINK, screen, SCREEN_W // 2, SCREEN_H // 6)
         draw_text("Press SPACE to Inject Packet", font_med, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2)
         draw_text("P to Pause. ESC to Quit.", font_small, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2 + 40)
-        draw_text(f"High: {high_score}", font_med, GREEN, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 40)
+        draw_text(f"High: {high_score}", font_med, GREEN, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 60)
         if score > 0:
-            draw_text(f"Last Run: {score} LVL", font_small, WHITE, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 10)
-        if score >= 60:
-            draw_text("ACCESS GRANTED", font_med, BLUE, screen, SCREEN_W // 2, SCREEN_H * 2 / 3)
+            draw_text(f"Last Run: {score} LVL", font_small, WHITE, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 - 10)
+            final_rank, _, _ = get_level_info(score)
+            rank_name, _, rank_color = final_rank
+            if rank_name != "NOVICE":
+                 draw_text(f"RANK: {rank_name}", font_med, rank_color, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 20)
 
  # FX
     if glitch_fx > 0:
@@ -318,3 +338,4 @@ while running:
 save_hs(high_score)
 pygame.quit()
 sys.exit()
+
