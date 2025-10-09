@@ -1,51 +1,58 @@
-Flappy Pwn
-A hacker-themed twist on the classic flapping bird game. You are a data packet trying to infiltrate a secure network, navigating through firewalls and using exploits to achieve the highest score.
+🐧 Flappy Pwn — Hacker-Themed Flappy Bird
 
-Gameplay
-The goal is to navigate your packet through pairs of firewalls without crashing. Each firewall you pass increases your "ACCESS LVL" (score).
+A hacker-themed twist on the classic flapping bird game.
+You are a data packet trying to infiltrate a secure network, navigating through firewalls and using exploits to achieve the highest score.
 
-Controls
-SPACE: Inject Packet (Flap) / Start Game
+🎮 Gameplay
 
-P: Pause / Resume
+The goal is to navigate your packet through pairs of firewalls without crashing.
+Each firewall you pass increases your ACCESS LVL (score).
 
-ESC: Quit Game
+🕹️ Controls
+Key	Action
+SPACE	Inject Packet (Flap) / Start
+P	Pause / Resume
+ESC	Quit Game
+🧰 Exploits (Power-ups)
 
-Exploits (Power-ups)
 Collect these special items that appear between firewalls to gain temporary advantages:
 
-Shield (Blue): Protects you from one crash.
+🛡️ Shield (Blue) — Protects you from one crash.
 
-Lag Exploit (Orange): Slows down the game speed.
+🐢 Lag Exploit (Orange) — Slows down the game speed.
 
-Cloak (Purple): Shrinks your packet, making it easier to navigate.
+🕵️ Cloak (Purple) — Shrinks your packet, making it easier to navigate.
 
-Endless Ranking System
-Instead of a finite goal, the game features an endless ranking system. Prove your skills by reaching higher ranks as your score increases.
+🏆 Endless Ranking System
 
-Score Required                  Rank Unlocked
+Instead of a finite goal, the game features an endless ranking system.
+Prove your skills by reaching higher ranks as your score increases.
 
-10                              USER TOKEN
+Score Required	Rank Unlocked
+10	USER TOKEN
+25	PRIVILEGE ESC
+60	BRONZE EXPLOIT
+100	SILVER ROOTKIT
+150	GOLDEN ZERODAY
+200	PLATINUM BREACH
+250	MASTER PWNER
+...	and beyond...
+⚡ How to Run
 
-25                              PRIVILEGE ESC
-
-60                              BRONZE EXPLOIT
-
-100                             SILVER ROOTKIT
-
-150                             GOLDEN ZERODAY
-
-200                             PLATINUM BREACH
-
-250                             MASTER PWNER
-
-...and beyond!
-
-How to Run
 Make sure you have Python and the Pygame library installed:
 
 pip install pygame
 
+
 Run the script from your terminal:
 
 python flappy_pwn_clean.py
+
+
+✅ Tip: Add a screenshot or gameplay GIF below to make your repo look even better:
+
+![Flappy Pwn Gameplay](assets/preview.png)
+
+
+⭐ If you like this project, don’t forget to star the repo!
+💻 Happy Pwn’ing!
