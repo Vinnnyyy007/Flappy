@@ -23,41 +23,23 @@ Cloak (Purple): Shrinks your packet, making it easier to navigate.
 Endless Ranking System
 Instead of a finite goal, the game features an endless ranking system. Prove your skills by reaching higher ranks as your score increases.
 
-Score Required
+Score Required                  Rank Unlocked
 
-Rank Unlocked
+10                              USER TOKEN
 
-10
+25                              PRIVILEGE ESC
 
-USER TOKEN
+60                              BRONZE EXPLOIT
 
-25
+100                             SILVER ROOTKIT
 
-PRIVILEGE ESC
+150                             GOLDEN ZERODAY
 
-60
+200                             PLATINUM BREACH
 
-BRONZE EXPLOIT
-
-100
-
-SILVER ROOTKIT
-
-150
-
-GOLDEN ZERODAY
-
-200
-
-PLATINUM BREACH
-
-250
-
-MASTER PWNER
+250                             MASTER PWNER
 
 ...and beyond!
-
-
 
 How to Run
 Make sure you have Python and the Pygame library installed:
