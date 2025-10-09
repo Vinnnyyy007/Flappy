@@ -18,6 +18,7 @@ clock = pygame.time.Clock()
 font_big = pygame.font.Font(None, 64)
 font_med = pygame.font.Font(None, 36)
 font_small = pygame.font.Font(None, 22)
+font_binary = pygame.font.Font(None, 18)
 
 # Colors
 GREEN = (0, 255, 140)
@@ -73,7 +74,6 @@ HS_FILE = "highscore_pwn.txt"
 active = False
 paused = False
 glitch_fx = 0
-rain_cols = [random.randint(-600, 0) for _ in range(35)]
 
 # Sounds
 def make_sound(freq, dur):
@@ -106,6 +106,26 @@ def draw_text(text, font, color, surf, x, y, center=True):
     rect = obj.get_rect(center=(x,y)) if center else obj.get_rect(topleft=(x,y))
     if not center and x > SCREEN_W / 2: rect.topright = (x,y)
     surf.blit(obj, rect)
+
+def create_static_binary_background():
+    bg_surf = pygame.Surface((SCREEN_W, SCREEN_H))
+    bg_surf.fill(BLACK)
+    char_width, char_height = 10, 15
+    for x in range(0, SCREEN_W, char_width):
+        for y in range(0, SCREEN_H, char_height):
+            # Reduce density to create gaps in the columns
+            if random.randint(1, 10) > 4: # 60% chance to draw a character
+                char = random.choice(['0', '1'])
+                # Most characters are dim, with a small chance for a bright one
+                if random.randint(1, 20) == 1:
+                    color = (150, 255, 150) # Bright highlight
+                else:
+                    brightness = random.randint(50, 110) # Dimmer base
+                    color = (0, brightness, 0)
+                
+                char_render = font_binary.render(char, True, color)
+                bg_surf.blit(char_render, (x, y))
+    return bg_surf
 
 def get_level_info(s):
     current_rank = ("NOVICE", 0, WHITE)
@@ -252,6 +272,7 @@ def reset():
 
 # Game Loop
 high_score = load_hs()
+static_background = create_static_binary_background()
 running = True
 while running:
     # Events
@@ -269,7 +290,7 @@ while running:
                 paused = not paused
 
     # Background
-    screen.fill(BLACK)
+    screen.blit(static_background, (0, 0))
 
     if active:
         if not paused:
@@ -306,7 +327,7 @@ while running:
         draw_hud(score, high_score)
         draw_text(str(score), font_big, GREEN, screen, SCREEN_W // 2, 120)
         if paused: draw_text("PAUSED", font_big, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2)
-# Menu
+
     else: 
         draw_text("FLAPPY PWN", font_big, PINK, screen, SCREEN_W // 2, SCREEN_H // 6)
         draw_text("Press SPACE to Inject Packet", font_med, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2)
@@ -338,4 +359,5 @@ while running:
 save_hs(high_score)
 pygame.quit()
 sys.exit()
+
 
