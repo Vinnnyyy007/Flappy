@@ -1,69 +1,36 @@
-Flappy Pygame
-A feature-rich clone of the classic Flappy Bird game built with Python and Pygame. This project goes beyond the basics, adding dynamic difficulty, power-ups, sound effects, and player rewards to create a more engaging experience.
+Flappy Pwn
+A fast-paced, hacker-themed twist on the classic flapping game. Navigate a data packet through a hostile network, bypass firewalls, and use exploits to achieve the highest score possible.
 
+Gameplay
+You are a packet trying to infiltrate a secured network. The goal is to survive as long as possible by navigating through gaps in the firewalls.
 
-Features
-This isn't just a simple clone. Here are some of the features that make this version unique:
+Player: A data packet.
 
-Classic Gameplay: Simple one-button (spacebar) flap controls with familiar gravity physics.
+Obstacles: Firewalls that must be bypassed.
 
-Dynamic Difficulty: The game speed subtly increases as your score gets higher, keeping the challenge fresh.
+Power-ups: Exploits that grant temporary advantages like shields, slow-motion, and cloaking (shrinking).
 
-Moving Pipes: Some pipes will move up and down, requiring extra timing and attention.
+Controls
+SPACE: Flap (Inject Packet) / Start a new game.
 
-Power-Ups: Collect special items that appear between pipes:
+P: Pause or resume the current game.
 
-Shield: Protects you from a single crash.
+ESC: Quit the game.
 
-Slow-Mo: Temporarily slows down the game speed.
-
-Shrink: Makes the bird smaller, allowing it to fit through tighter gaps.
-
-Rewarding Progression:
-
-Medal System: Earn Bronze, Silver, or Gold medals on the game-over screen for reaching score milestones (10, 25, 50+ points).
-
-Persistent High Score: Your high score is saved locally in a highscore.txt file, so you can always aim to beat your personal best.
-
-Polished Experience:
-
-Generated Sound Effects: All sounds for flapping, scoring, crashing, and power-ups are generated in real-time—no audio files needed!
-
-Day/Night Cycle: The background smoothly transitions from day to night as your score increases.
-
-Pause Function: Press the 'P' key at any time to pause the game.
-
-How to Play
-Start: Press the SPACEBAR to begin the game from the main menu.
-
-Flap: Press the SPACEBAR during gameplay to make the bird flap upwards.
-
-Pause: Press the 'P' key to pause or unpause the game.
-
-Goal: Navigate through as many pipes as possible to get the highest score.
-
-Getting Started
-Follow these instructions to get a copy of the project up and running on your local machine.
-
+How to Run
 Prerequisites
-You need to have Python 3 and Pygame installed on your system.
+Python 3
 
-Python: You can download it from python.org.
+Pygame
 
-Pygame: Once Python is installed, you can install Pygame by opening your terminal or command prompt and running:
+1. Install Pygame
+Open your terminal or command prompt and run the following command:
 
 pip install pygame
 
-Running the Game
-Clone this repository or download the source code.
+2. Run the Game
+Navigate to the directory containing the game file and run:
 
-Navigate to the project directory in your terminal.
+python flappy_pwn_clean.py
 
-Run the game with the following command:
-
-python flappybird.py
-
-Built With
-Python - The core programming language.
-
-Pygame - The cross-platform library used for creating the game.
+Good luck!!!
