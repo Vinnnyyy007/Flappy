@@ -1,12 +1,12 @@
 🐧 Flappy Pwn — Hacker-Themed Flappy Bird
-
 A hacker-themed twist on the classic flapping bird game.
 You are a data packet trying to infiltrate a secure network, navigating through firewalls and using exploits to achieve the highest score.
 
-🎮 Gameplay
 
+🎮 Gameplay
 The goal is to navigate your packet through pairs of firewalls without crashing.
 Each firewall you pass increases your ACCESS LVL (score).
+
 
 🕹️ Controls
 Key	Action
@@ -15,7 +15,9 @@ P	Pause / Resume
 ESC	Quit Game
 🧰 Exploits (Power-ups)
 
+
 Collect these special items that appear between firewalls to gain temporary advantages:
+
 
 🛡️ Shield (Blue) — Protects you from one crash.
 
@@ -25,8 +27,10 @@ Collect these special items that appear between firewalls to gain temporary adva
 
 🏆 Endless Ranking System
 
+
 Instead of a finite goal, the game features an endless ranking system.
 Prove your skills by reaching higher ranks as your score increases.
+
 
 Score Required	Rank Unlocked
 10	USER TOKEN
@@ -37,21 +41,16 @@ Score Required	Rank Unlocked
 200	PLATINUM BREACH
 250	MASTER PWNER
 ...	and beyond...
+
+
+
 ⚡ How to Run
-
 Make sure you have Python and the Pygame library installed:
-
 pip install pygame
 
 
 Run the script from your terminal:
-
 python flappy_pwn_clean.py
-
-
-✅ Tip: Add a screenshot or gameplay GIF below to make your repo look even better:
-
-![Flappy Pwn Gameplay](assets/preview.png)
 
 
 ⭐ If you like this project, don’t forget to star the repo!
