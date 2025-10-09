@@ -1,351 +1,320 @@
-import pygame
-import random
-import sys
-import os
-import math
+# Flappy Pwn by [Your Name]
+# SPACE: flap/start, P: pause, ESC: quit
+
+import pygame, random, sys, os
 from array import array
 
-# Initialization
 pygame.init()
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 
-# Screen Setup
-SCREEN_WIDTH = 400
-SCREEN_HEIGHT = 600
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Flappy Pygame")
-
-# Clock
-clock = pygame.time.Clock()
+# Config
+SCREEN_W, SCREEN_H = 400, 600
 FPS = 60
+screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
+pygame.display.set_caption("Flappy Pwn")
+clock = pygame.time.Clock()
 
 # Fonts
-font = pygame.font.Font(None, 60)
-small_font = pygame.font.Font(None, 35)
+font_big = pygame.font.Font(None, 64)
+font_med = pygame.font.Font(None, 36)
+font_small = pygame.font.Font(None, 22)
 
 # Colors
-WHITE = (255, 255, 255)
+GREEN = (0, 255, 140)
+BLUE = (30, 144, 255)
+PINK = (255, 50, 200)
 BLACK = (0, 0, 0)
-SKY_BLUE = (135, 206, 235)
-NIGHT_BLUE = (25, 25, 112)
-GREEN = (50, 205, 50)
-DARK_GREEN = (0, 100, 0)
-YELLOW = (255, 255, 0)
-SHIELD_COLOR = (30, 144, 255, 100)
+WHITE = (255, 255, 255)
+RED = (220, 40, 40)
+SHIELD_COLOR = (60, 180, 255)
 SLOWMO_COLOR = (255, 165, 0)
-SHRINK_COLOR = (148, 0, 211)
+CLOAK_COLOR = (148, 0, 211)
 
-
-# Medal Colors
-BRONZE = (205, 127, 50)
-SILVER = (192, 192, 192)
-GOLD = (255, 215, 0)
-
-
-# Bird Settings
-bird_x = 75
-bird_y = SCREEN_HEIGHT // 2
-original_bird_radius = 15
-bird_radius = original_bird_radius
+# Player
+player_x, player_y = 75, SCREEN_H // 2
+player_rad = 14
 gravity = 0.5
 lift = -10
-bird_velocity = 0
+player_vel = 0
 
-
-# Pipe Settings
-pipe_width = 70
-pipe_gap = 200
-base_pipe_velocity = -3
-pipe_velocity = base_pipe_velocity
+# Firewalls
+pipe_w = 72
+pipe_gap = 180
+pipe_speed_base = -3
+pipe_speed = pipe_speed_base
 pipes = []
-pipe_spawn_rate = 120
+pipe_rate = 110
 frame_count = 0
 
-
-# Power-up Settings
+# Exploits
 powerups = []
-shield_active = False
-slowmo_timer = 0
-shrink_timer = 0
-POWERUP_DURATION = 300 # 5 seconds at 60 FPS
+shield_on = False
+slowmo_time = 0
+shrink_time = 0
+POWERUP_DUR = 300
 
-
-# Score Settings
+# Score
 score = 0
 high_score = 0
-HIGH_SCORE_FILE = "highscore.txt"
+HS_FILE = "highscore_pwn.txt"
 
+# State
+active = False
+paused = False
+glitch_fx = 0
+rain_cols = [random.randint(-600, 0) for _ in range(35)]
 
-# Game State
-game_active = False
-game_paused = False # For the new pause feature
+# Sounds
+def make_sound(freq, dur):
+    sample_rate, sampsize = pygame.mixer.get_init()[0], abs(pygame.mixer.get_init()[1])
+    period = int(round(sample_rate / freq)) if freq > 0 else 1
+    amp = (2 ** (sampsize - 1)) - 1
+    samps = array("h", [amp if (i // period) % 2 == 0 else -amp for i in range(int(sample_rate * dur / 1000))])
+    try: return pygame.mixer.Sound(buffer=samps)
+    except: return None
 
+s_flap = make_sound(900, 45)
+s_score = make_sound(1400, 80)
+s_crash = make_sound(360, 220)
+s_power = make_sound(1500, 120)
+s_shield_break = make_sound(650, 140)
 
-# Sound Generation
-def generate_sound(frequency, duration_ms):
-    sample_rate = pygame.mixer.get_init()[0]
-    period = int(round(sample_rate / frequency))
-    amplitude = 2 ** (abs(pygame.mixer.get_init()[1]) - 1) - 1
-    samples = array("h", [0] * (sample_rate * duration_ms // 1000))
-    for i in range(len(samples)):
-        samples[i] = amplitude if (i // period) % 2 == 0 else -amplitude
-    return pygame.mixer.Sound(buffer=samples)
+# Files
+def load_hs():
+    if not os.path.exists(HS_FILE): return 0
+    with open(HS_FILE, "r") as f:
+        try: return int(f.read().strip())
+        except: return 0
 
+def save_hs(hs):
+    with open(HS_FILE, "w") as f: f.write(str(hs))
 
-# Game Sounds
-flap_sound = generate_sound(800, 50)
-score_sound = generate_sound(1200, 100)
-crash_sound = generate_sound(400, 200)
-powerup_sound = generate_sound(1500, 150)
-shield_break_sound = generate_sound(600, 150)
+# Drawing
+def draw_text(text, font, color, surf, x, y, center=True):
+    obj = font.render(text, True, color)
+    rect = obj.get_rect(center=(x,y)) if center else obj.get_rect(topleft=(x,y))
+    if not center and x > SCREEN_W / 2: rect.topright = (x,y)
+    surf.blit(obj, rect)
 
+def draw_rain(surf):
+    for i, col_y in enumerate(rain_cols):
+        x = int(i * (SCREEN_W / len(rain_cols)))
+        length = random.randint(6, 22)
+        for j in range(length):
+            alpha = max(30, 255 - j * 12)
+            s = pygame.Surface((4, 4), pygame.SRCALPHA)
+            s.fill((0, 255, 140, alpha))
+            surf.blit(s, (x + random.randint(-2, 2), (col_y + j * 6) % SCREEN_H))
+        rain_cols[i] = (col_y + random.randint(2, 8)) % (SCREEN_H + 200)
 
-# High Score File Handling
-def load_high_score():
-    if os.path.exists(HIGH_SCORE_FILE):
-        with open(HIGH_SCORE_FILE, "r") as file:
-            try: return int(file.read())
-            except ValueError: return 0
-    return 0
+def draw_scanlines(surf, t):
+    for y in range(0, SCREEN_H, 6):
+        if (y + t) % 12 < 2:
+            s = pygame.Surface((SCREEN_W, 2), pygame.SRCALPHA)
+            s.fill((20, 20, 40, 20))
+            surf.blit(s, (0, y))
 
-def save_high_score(new_high_score):
-    with open(HIGH_SCORE_FILE, "w") as file:
-        file.write(str(new_high_score))
-
-
-# Background Color
-def get_background_color(current_score):
-    transition_progress = min(current_score / 20.0, 1.0)
-    r = int(SKY_BLUE[0] + (NIGHT_BLUE[0] - SKY_BLUE[0]) * transition_progress)
-    g = int(SKY_BLUE[1] + (NIGHT_BLUE[1] - SKY_BLUE[1]) * transition_progress)
-    b = int(SKY_BLUE[2] + (NIGHT_BLUE[2] - SKY_BLUE[2]) * transition_progress)
-    return (r, g, b)
-
-
-# Drawing Functions
-def draw_bird(x, y):
-    pygame.draw.circle(screen, YELLOW, (int(x), int(y)), bird_radius)
-    if shield_active:
-        shield_surface = pygame.Surface((bird_radius * 2, bird_radius * 2), pygame.SRCALPHA)
-        pygame.draw.circle(shield_surface, SHIELD_COLOR, (bird_radius, bird_radius), bird_radius)
-        screen.blit(shield_surface, (int(x - bird_radius), int(y - bird_radius)))
+def draw_player(x, y):
+    pygame.draw.circle(screen, PINK, (int(x), int(y)), player_rad + 2)
+    glow = pygame.Surface((player_rad * 2 + 6, player_rad * 2 + 6), pygame.SRCALPHA)
+    pygame.draw.circle(glow, (255, 255, 255, 40), (player_rad + 3, player_rad + 3), player_rad + 4)
+    screen.blit(glow, (int(x - player_rad) - 3, int(y - player_rad) - 3))
+    pygame.draw.circle(screen, PINK, (int(x), int(y)), player_rad)
+    pts = [(x + player_rad, y), (x + player_rad - 6, y - 6), (x + player_rad - 6, y + 6)]
+    pygame.draw.polygon(screen, (255, 200, 255), pts)
+    if shield_on:
+        shield_surf = pygame.Surface((player_rad * 3, player_rad * 3), pygame.SRCALPHA)
+        pygame.draw.circle(shield_surf, (*SHIELD_COLOR, 80), (player_rad*1.5, player_rad*1.5), int(player_rad * 1.6), 3)
+        screen.blit(shield_surf, (int(x - player_rad * 1.5), int(y - player_rad * 1.5)))
 
 def draw_pipe(pipe):
-    pygame.draw.rect(screen, GREEN, pipe['top_rect'])
-    pygame.draw.rect(screen, DARK_GREEN, pipe['top_rect'], 5)
-    pygame.draw.rect(screen, GREEN, pipe['bottom_rect'])
-    pygame.draw.rect(screen, DARK_GREEN, pipe['bottom_rect'], 5)
+    for rect in [pipe['top_rect'], pipe['bottom_rect']]:
+        pygame.draw.rect(screen, RED, rect)
+        pygame.draw.rect(screen, (180, 30, 30), rect, 4)
+        for i in range(1,4):
+            y_off = int(rect.y + (rect.height / 4) * i)
+            pygame.draw.line(screen, (255, 100, 100), (rect.x + 6, y_off - 6), (rect.x + pipe_w - 6, y_off + 6), 1)
 
 def draw_powerups():
-    for powerup in powerups:
-        color = BLACK
-        if powerup['type'] == 'shield': color = SHIELD_COLOR
-        elif powerup['type'] == 'slowmo': color = SLOWMO_COLOR
-        elif powerup['type'] == 'shrink': color = SHRINK_COLOR
-        pygame.draw.ellipse(screen, color, powerup['rect'])
+    for p in powerups:
+        r = p['rect']
+        color = SHIELD_COLOR if p['type'] == 'shield' else SLOWMO_COLOR if p['type'] == 'slowmo' else CLOAK_COLOR
+        pygame.draw.ellipse(screen, color, r)
+        pygame.draw.ellipse(screen, WHITE, r, 1)
 
-def draw_text(text, font, color, surface, x, y, center=True):
-    text_obj = font.render(text, True, color)
-    text_rect = text_obj.get_rect()
-    if center: text_rect.center = (x, y)
-    else: text_rect.topleft = (x, y)
-    surface.blit(text_obj, text_rect)
-
-def draw_medals(current_score):
-    medal = None
-    if current_score >= 50:
-        medal = "Gold"
-        medal_color = GOLD
-    elif current_score >= 25:
-        medal = "Silver"
-        medal_color = SILVER
-    elif current_score >= 10:
-        medal = "Bronze"
-        medal_color = BRONZE
-    
-    if medal:
-        pygame.draw.circle(screen, medal_color, (SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT * 2 / 3 + 15), 20)
-        draw_text(f"{medal} Medal!", small_font, WHITE, screen, SCREEN_WIDTH // 2 + 30, SCREEN_HEIGHT * 2 / 3 + 15)
-
-# Object Creation
-def create_pipe():
-    random_height = random.randint(150, SCREEN_HEIGHT - 150 - pipe_gap)
-    top_rect = pygame.Rect(SCREEN_WIDTH, 0, pipe_width, random_height)
-    bottom_rect = pygame.Rect(SCREEN_WIDTH, random_height + pipe_gap, pipe_width, SCREEN_HEIGHT - (random_height + pipe_gap))
-    
-    if random.randint(1, 5) == 1:
-        create_powerup(random_height + pipe_gap // 2)
-
-    is_moving = random.choice([True, False, False])
-    move_dir = random.choice([-1, 1]) if is_moving else 0
-    move_speed = random.uniform(0.5, 1.5) if is_moving else 0
-
-    return {'top_rect': top_rect, 'bottom_rect': bottom_rect, 'passed': False,
-            'moving': is_moving, 'move_dir': move_dir, 'move_speed': move_speed}
-
-def create_powerup(y_pos):
-    powerup_type = random.choice(['shield', 'slowmo', 'shrink'])
-    rect = pygame.Rect(SCREEN_WIDTH + pipe_width // 2, y_pos - 15, 20, 20)
-    powerups.append({'rect': rect, 'type': powerup_type})
+def draw_hud(s, hs):
+    hud = pygame.Surface((SCREEN_W, 70), pygame.SRCALPHA)
+    hud.fill((10, 10, 10, 120))
+    screen.blit(hud, (0, 0))
+    draw_text(f"ACCESS LVL {s}", font_med, GREEN, screen, 12, 10, False)
+    draw_text(f"HIGH {hs}", font_small, WHITE, screen, SCREEN_W - 12, 12, False)
+    pct = min(s / 60.0, 1.0)
+    bar_w = SCREEN_W - 40
+    pygame.draw.rect(screen, (40,40,40), (20, 40, bar_w, 12))
+    pygame.draw.rect(screen, BLUE, (20, 40, int(bar_w * pct), 12))
+    draw_text("EXFIL PROGRESS", font_small, WHITE, screen, SCREEN_W // 2, 65)
 
 # Game Logic
-def move_objects():
-    for pipe in pipes:
-        pipe['top_rect'].x += pipe_velocity
-        pipe['bottom_rect'].x += pipe_velocity
-    for powerup in powerups:
-        powerup['rect'].x += pipe_velocity
+def create_pipe():
+    h = random.randint(120, SCREEN_H - 120 - pipe_gap)
+    top = pygame.Rect(SCREEN_W, 0, pipe_w, h)
+    bot = pygame.Rect(SCREEN_W, h + pipe_gap, pipe_w, SCREEN_H - h - pipe_gap)
+    if random.randint(1, 5) == 1:
+        powerups.append({'rect': pygame.Rect(SCREEN_W + pipe_w // 2, h + pipe_gap // 2 - 12, 22, 22), 'type': random.choice(['shield', 'slowmo', 'shrink'])})
+    moving = random.choice([True, False, False])
+    return {'top_rect': top, 'bottom_rect': bot, 'passed': False, 'moving': moving, 'move_dir': random.choice([-1, 1]), 'move_speed': random.uniform(0.4, 1.6)}
 
-def update_moving_pipes(pipe_list):
-    for pipe in pipe_list:
-        if pipe['moving']:
-            pipe['top_rect'].y += pipe['move_speed'] * pipe['move_dir']
-            pipe['bottom_rect'].y += pipe['move_speed'] * pipe['move_dir']
-            if pipe['top_rect'].height < 75 or pipe['bottom_rect'].top > SCREEN_HEIGHT - 75:
-                pipe['move_dir'] *= -1
+def update_physics():
+    for p in pipes + powerups:
+        if 'rect' in p: p['rect'].x += pipe_speed
+        else:
+            p['top_rect'].x += pipe_speed
+            p['bottom_rect'].x += pipe_speed
+
+    for p in pipes:
+        if p['moving']:
+            p['top_rect'].y += p['move_speed'] * p['move_dir']
+            p['bottom_rect'].y += p['move_speed'] * p['move_dir']
+            if p['top_rect'].height < 80 or p['bottom_rect'].top > SCREEN_H - 80:
+                p['move_dir'] *= -1
 
 def check_collisions():
-    global shield_active, slowmo_timer, shrink_timer, bird_radius, bird_y, bird_x
-    
-    bird_rect = pygame.Rect(bird_x - bird_radius, bird_y - bird_radius, bird_radius * 2, bird_radius * 2)
+    global shield_on, slowmo_time, shrink_time, player_y
+    pr = pygame.Rect(player_x - player_rad, player_y - player_rad, player_rad * 2, player_rad * 2)
 
-    for powerup in powerups[:]:
-        if bird_rect.colliderect(powerup['rect']):
-            powerup_sound.play()
-            if powerup['type'] == 'shield': shield_active = True
-            elif powerup['type'] == 'slowmo': slowmo_timer = POWERUP_DURATION
-            elif powerup['type'] == 'shrink': shrink_timer = POWERUP_DURATION
-            powerups.remove(powerup)
+    for p in powerups[:]:
+        if pr.colliderect(p['rect']):
+            if s_power: s_power.play()
+            if p['type'] == 'shield': shield_on = True
+            elif p['type'] == 'slowmo': slowmo_time = POWERUP_DUR
+            elif p['type'] == 'shrink': shrink_time = POWERUP_DUR
+            powerups.remove(p)
 
     for pipe in pipes:
-        if bird_rect.colliderect(pipe['top_rect']) or bird_rect.colliderect(pipe['bottom_rect']):
-            if shield_active:
-                shield_active = False
-                shield_break_sound.play()
+        if pr.colliderect(pipe['top_rect']) or pr.colliderect(pipe['bottom_rect']):
+            if shield_on:
+                shield_on = False
+                if s_shield_break: s_shield_break.play()
                 pipes.remove(pipe)
                 return False
             return True
-            
-    if not 0 <= bird_y <= SCREEN_HEIGHT:
-        if shield_active:
-            shield_active = False
-            shield_break_sound.play()
-            bird_y = max(bird_radius, min(bird_y, SCREEN_HEIGHT - bird_radius))
+
+    if not 0 <= player_y <= SCREEN_H:
+        if shield_on:
+            shield_on = False
+            if s_shield_break: s_shield_break.play()
+            player_y = max(player_rad, min(player_y, SCREEN_H - player_rad))
             return False
         return True
-        
     return False
 
-def apply_powerup_effects():
-    global slowmo_timer, shrink_timer, bird_radius, gravity, pipe_velocity, base_pipe_velocity
-    
-    if slowmo_timer > 0:
-        slowmo_timer -= 1
-        pipe_velocity = (base_pipe_velocity - (score / 10)) * 0.5
-        gravity = 0.25
+def handle_powerups():
+    global slowmo_time, shrink_time, player_rad, gravity, pipe_speed
+    if slowmo_time > 0:
+        slowmo_time -= 1
+        pipe_speed, gravity = (pipe_speed_base - (score / 10)) * 0.45, 0.25
     else:
-        pipe_velocity = base_pipe_velocity - (score / 10)
-        gravity = 0.5
+        pipe_speed, gravity = pipe_speed_base - (score / 10) * 0.02, 0.5
 
-    if shrink_timer > 0:
-        shrink_timer -= 1
-        bird_radius = original_bird_radius * 0.6
+    if shrink_time > 0:
+        shrink_time -= 1
+        player_rad = 14 * 0.6
     else:
-        bird_radius = original_bird_radius
+        player_rad = 14
 
-def reset_game():
-    global bird_y, bird_velocity, pipes, score, game_active, frame_count, pipe_velocity, powerups, shield_active, slowmo_timer, shrink_timer, bird_radius, game_paused
-    bird_y = SCREEN_HEIGHT // 2
-    bird_velocity = 0
-    pipes = []
-    powerups = []
-    score = 0
-    frame_count = 0
-    pipe_velocity = base_pipe_velocity
-    shield_active = False
-    slowmo_timer = 0
-    shrink_timer = 0
-    bird_radius = original_bird_radius
-    game_active = True
-    game_paused = False
+def reset():
+    global player_y, player_vel, pipes, score, active, frame_count, pipe_speed
+    global powerups, shield_on, slowmo_time, shrink_time, player_rad, paused, glitch_fx
+    player_y, player_vel, score, frame_count = SCREEN_H // 2, 0, 0, 0
+    pipes, powerups = [], []
+    pipe_speed = pipe_speed_base
+    shield_on, slowmo_time, shrink_time = False, 0, 0
+    player_rad = 14
+    active, paused, glitch_fx = True, False, 0
 
-# Main Game Execution
-high_score = load_high_score()
+# Game Loop
+high_score = load_hs()
 running = True
-
 while running:
-    # Event Loop
+    # Events
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-            pygame.quit()
-            sys.exit()
+        if event.type == pygame.QUIT: running = False
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE: running = False
             if event.key == pygame.K_SPACE:
-                if game_active and not game_paused:
-                    bird_velocity = lift
-                    flap_sound.play()
-                elif not game_active:
-                    reset_game()
-            if event.key == pygame.K_p: # Pause event
-                if game_active:
-                    game_paused = not game_paused
+                if active and not paused:
+                    player_vel = lift
+                    if s_flap: s_flap.play()
+                elif not active:
+                    reset()
+            if event.key == pygame.K_p and active:
+                paused = not paused
 
-    # Drawing
-    screen.fill(get_background_color(score))
+    # Background
+    screen.fill(BLACK)
 
-    if game_active:
-        if not game_paused:
-            # Game Updates
-            bird_velocity += gravity
-            bird_y += bird_velocity
-            
-            apply_powerup_effects()
-            
-            frame_count += 1
-            if frame_count > pipe_spawn_rate:
+    if active:
+        if not paused:
+            # Physics
+            player_vel += gravity
+            player_y += player_vel
+            handle_powerups()
+            if frame_count > pipe_rate:
                 pipes.append(create_pipe())
                 frame_count = 0
+            frame_count += 1
+            update_physics()
 
-            move_objects()
-            update_moving_pipes(pipes)
-
-            for pipe in pipes:
-                if not pipe['passed'] and pipe['top_rect'].centerx < bird_x:
-                    pipe['passed'] = True
+            # Score
+            for p in pipes:
+                if not p['passed'] and p['top_rect'].centerx < player_x:
+                    p['passed'] = True
                     score += 1
-                    score_sound.play()
-            
+                    if s_score: s_score.play()
+
+            # Collide
             if check_collisions():
-                crash_sound.play()
-                game_active = False
+                if s_crash: s_crash.play()
+                active = False
+                glitch_fx = 22
                 if score > high_score:
                     high_score = score
-                    save_high_score(high_score)
+                    save_hs(high_score)
 
-        # Render active game
-        draw_bird(bird_x, bird_y)
+        # Draw
+        draw_player(player_x, player_y)
         for pipe in pipes: draw_pipe(pipe)
         draw_powerups()
-        draw_text(str(score), font, WHITE, screen, SCREEN_WIDTH // 2, 50)
-        
-        if game_paused:
-            draw_text("Paused", font, WHITE, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        draw_hud(score, high_score)
+        draw_text(str(score), font_big, GREEN, screen, SCREEN_W // 2, 120)
+        if paused: draw_text("PAUSED", font_big, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2)
+# Menu
+    else: 
+        draw_text("FLAPPY PWN", font_big, PINK, screen, SCREEN_W // 2, SCREEN_H // 6)
+        draw_text("Press SPACE to Inject Packet", font_med, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2)
+        draw_text("P to Pause. ESC to Quit.", font_small, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2 + 40)
+        draw_text(f"High: {high_score}", font_med, GREEN, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 40)
+        if score > 0:
+            draw_text(f"Last Run: {score} LVL", font_small, WHITE, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 10)
+        if score >= 60:
+            draw_text("ACCESS GRANTED", font_med, BLUE, screen, SCREEN_W // 2, SCREEN_H * 2 / 3)
 
-    else:
-        # Render menu screen
-        draw_text("Flappy Pygame", font, WHITE, screen, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4)
-        draw_text("Press SPACE to Start", small_font, WHITE, screen, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
-        highscore_text = f"High Score: {high_score}"
-        draw_text(highscore_text, small_font, WHITE, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT * 2 / 3 + 60)
-        
-        if score > 0: # Only show score and medals if a game was played
-            score_text = f"Score: {score}"
-            draw_text(score_text, small_font, WHITE, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT * 2 / 3 + 20)
-            draw_medals(score)
+ # FX
+    if glitch_fx > 0:
+        g_surf = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
+        g_surf.fill((255, 20, 20, 40 + glitch_fx * 6))
+        for _ in range(12):
+            pygame.draw.rect(g_surf, (255,255,255,40), (random.randint(0,SCREEN_W), random.randint(0,SCREEN_H), random.randint(10,80), random.randint(2,12)))
+        screen.blit(g_surf, (0,0))
+        glitch_fx -= 1
 
+    # Cleanup
+    pipes = [p for p in pipes if p['top_rect'].right > -50]
+    powerups = [p for p in powerups if p['rect'].right > -30]
 
-    # Update Display
     pygame.display.update()
     clock.tick(FPS)
 
+save_hs(high_score)
+pygame.quit()
+sys.exit()
