@@ -62,7 +62,7 @@ wing_frame_counter = 0 # Flapping timer
 
 # Firewalls
 pipe_w = 72
-pipe_gap = 180
+pipe_gap = 220 # <-- Increased from 180 to 220 for easier passage!
 pipe_speed_base = -3
 pipe_speed = pipe_speed_base
 pipes = []
@@ -156,7 +156,7 @@ def get_level_info(s):
             break
     return current_rank, next_rank, prev_threshold
 
-# MODIFIED: Draw Player function to draw a bird-like triangle with wings and an eye
+# MODIFIED: Draw Player function to draw a bird-like triangle with wings and an eye, and a "joint-like" object
 def draw_player(x, y):
     global player_wing_up, wing_frame_counter
     
@@ -203,7 +203,23 @@ def draw_player(x, y):
     pygame.draw.circle(screen, WHITE, (eye_center_x, eye_center_y), eye_radius)
     pygame.draw.circle(screen, BLACK, (eye_center_x + int(pupil_radius * 0.5), eye_center_y), pupil_radius) 
 
-    # 5. Shield Effect (if on)
+    # 5. "Joint-like" smoking object
+    joint_length = 25
+    joint_height = 4
+    joint_x_offset = player_rad * 1.9 # Position relative to bird's front
+    joint_y_offset = -1 # Adjust vertical position
+    
+    joint_rect = pygame.Rect(x + joint_x_offset, y + joint_y_offset, joint_length, joint_height)
+    
+    # Draw the main grey body of the joint
+    pygame.draw.rect(screen, (150, 150, 150), joint_rect) 
+    
+    # Draw the red tip
+    tip_width = 5
+    tip_rect = pygame.Rect(joint_rect.right - tip_width, joint_rect.y, tip_width, joint_height)
+    pygame.draw.rect(screen, RED, tip_rect)
+
+    # 6. Shield Effect (if on)
     if shield_on:
         shield_surf = pygame.Surface((player_rad * 4, player_rad * 4), pygame.SRCALPHA)
         # Adjusted shield size for the longer bird shape
