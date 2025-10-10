@@ -258,8 +258,9 @@ def draw_pipe(pipe):
 def draw_powerups():
     for p in powerups:
         color = SHIELD_COLOR if p['type'] == 'shield' else SLOWMO_COLOR if p['type'] == 'slowmo' else CLOAK_COLOR
-        pygame.draw.rect(p['rect'], color)
-        pygame.draw.rect(p['rect'], WHITE, 2)
+        # Add 'screen' as the first argument here
+        pygame.draw.rect(screen, color, p['rect'])
+        pygame.draw.rect(screen, WHITE, p['rect'], 2)
 
 # HUD
 def draw_hud(s, hs):
