@@ -1,36 +1,57 @@
-Flappy Pwn
-A fast-paced, hacker-themed twist on the classic flapping game. Navigate a data packet through a hostile network, bypass firewalls, and use exploits to achieve the highest score possible.
+🐧 Flappy Pwn — Hacker-Themed Flappy Bird
+A hacker-themed twist on the classic flapping bird game.
+You are a data packet trying to infiltrate a secure network, navigating through firewalls and using exploits to achieve the highest score.
 
-Gameplay
-You are a packet trying to infiltrate a secured network. The goal is to survive as long as possible by navigating through gaps in the firewalls.
 
-Player: A data packet.
+🎮 Gameplay
+The goal is to navigate your packet through pairs of firewalls without crashing.
+Each firewall you pass increases your ACCESS LVL (score).
 
-Obstacles: Firewalls that must be bypassed.
 
-Power-ups: Exploits that grant temporary advantages like shields, slow-motion, and cloaking (shrinking).
+🕹️ Controls
+Key	Action
+SPACE	Inject Packet (Flap) / Start
+P	Pause / Resume
+ESC	Quit Game
+🧰 Exploits (Power-ups)
 
-Controls
-SPACE: Flap (Inject Packet) / Start a new game.
 
-P: Pause or resume the current game.
+Collect these special items that appear between firewalls to gain temporary advantages:
 
-ESC: Quit the game.
 
-How to Run
-Prerequisites
-Python 3
+🛡️ Shield (Blue) — Protects you from one crash.
 
-Pygame
+🐢 Lag Exploit (Orange) — Slows down the game speed.
 
-1. Install Pygame
-Open your terminal or command prompt and run the following command:
+🕵️ Cloak (Purple) — Shrinks your packet, making it easier to navigate.
 
+🏆 Endless Ranking System
+
+
+Instead of a finite goal, the game features an endless ranking system.
+Prove your skills by reaching higher ranks as your score increases.
+
+
+Score Required	Rank Unlocked
+10	USER TOKEN
+25	PRIVILEGE ESC
+60	BRONZE EXPLOIT
+100	SILVER ROOTKIT
+150	GOLDEN ZERODAY
+200	PLATINUM BREACH
+250	MASTER PWNER
+...	and beyond...
+
+
+
+⚡ How to Run
+Make sure you have Python and the Pygame library installed:
 pip install pygame
 
-2. Run the Game
-Navigate to the directory containing the game file and run:
 
+Run the script from your terminal:
 python flappy_pwn_clean.py
 
-Good luck!!!
+
+⭐ If you like this project, don’t forget to star the repo!
+💻 Happy Pwn’ing!
