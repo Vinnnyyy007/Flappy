@@ -1,4 +1,4 @@
-# Flappy Pwn by [Your Name]
+# FLAPPY STONER by [Your Name]
 # SPACE: flap/start, P: pause, ESC: quit
 
 import pygame, random, sys, os
@@ -11,7 +11,7 @@ pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 SCREEN_W, SCREEN_H = 1000, 800
 FPS = 60
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
-pygame.display.set_caption("Flappy Pwn")
+pygame.display.set_caption("FLAPPY STONER") # Changed game title
 clock = pygame.time.Clock()
 
 # Fonts
@@ -31,6 +31,7 @@ SHIELD_COLOR = (60, 180, 255)
 SLOWMO_COLOR = (255, 165, 0)
 CLOAK_COLOR = (148, 0, 211)
 BIRD_COLOR = (255, 255, 0) # Bright Yellow for the bird
+STUNNED_EYE_COLOR = (255, 100, 100) # New: Reddish eye color
 
 # NEW BEER COLORS for the obstacles
 BEER_COLOR = (255, 191, 0) # Amber/Gold color for the liquid
@@ -194,13 +195,13 @@ def draw_player(x, y):
     ]
     pygame.draw.polygon(screen, (255, 100, 0), beak_pts)
     
-    # 4. Eye (White circle with black pupil)
+    # 4. Eye (Reddish circle with black pupil)
     eye_center_x = int(x + player_rad * 0.8) 
     eye_center_y = int(y - player_rad * 0.4) 
     eye_radius = int(player_rad * 0.4)
     pupil_radius = int(player_rad * 0.2)
 
-    pygame.draw.circle(screen, WHITE, (eye_center_x, eye_center_y), eye_radius)
+    pygame.draw.circle(screen, STUNNED_EYE_COLOR, (eye_center_x, eye_center_y), eye_radius) # Changed eye color
     pygame.draw.circle(screen, BLACK, (eye_center_x + int(pupil_radius * 0.5), eye_center_y), pupil_radius) 
 
     # 5. "Joint-like" smoking object
@@ -467,7 +468,7 @@ while running:
         if paused: draw_text("PAUSED", font_big, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2)
 
     else: 
-        draw_text("FLAPPY PWN", font_big, PINK, screen, SCREEN_W // 2, SCREEN_H // 6)
+        draw_text("FLAPPY STONER", font_big, PINK, screen, SCREEN_W // 2, SCREEN_H // 6) # Changed game title
         draw_text("Press SPACE to Inject Packet", font_med, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2)
         draw_text("P to Pause. ESC to Quit.", font_small, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2 + 40)
         draw_text(f"High: {high_score}", font_med, GREEN, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 60)
