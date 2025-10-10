@@ -1,17 +1,18 @@
-# Flappy Pwn by [Your Name]
-# SPACE: flap/start, P: pause, ESC: quit
+# Stonerbird
+# Controls
 
 import pygame, random, sys, os
 from array import array
 
+# Initialize
 pygame.init()
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 
 # Config
-SCREEN_W, SCREEN_H = 400, 600
+SCREEN_W, SCREEN_H = 1000, 800
 FPS = 60
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
-pygame.display.set_caption("Flappy Pwn")
+pygame.display.set_caption("FLAPPY STONER")
 clock = pygame.time.Clock()
 
 # Fonts
@@ -30,8 +31,18 @@ RED = (220, 40, 40)
 SHIELD_COLOR = (60, 180, 255)
 SLOWMO_COLOR = (255, 165, 0)
 CLOAK_COLOR = (148, 0, 211)
+BIRD_COLOR = (255, 255, 0)
+STUNNED_EYE_COLOR = (255, 100, 100)
 
-# Ranks & Levels
+# Theming
+BEER_COLOR = (255, 191, 0)
+FOAM_COLOR = (255, 255, 255)
+GLASS_COLOR = (120, 120, 120)
+BUBBLE_COLOR = (255, 230, 180)
+BUBBLE_OUTLINE_COLOR = BLACK
+BUBBLE_OUTLINE_THICKNESS = 1
+
+# Ranks
 LEVELS = [
     ("USER TOKEN", 10, CLOAK_COLOR),
     ("PRIVILEGE ESC", 25, GREEN),
@@ -48,17 +59,19 @@ player_rad = 14
 gravity = 0.5
 lift = -10
 player_vel = 0
+player_wing_up = True
+wing_frame_counter = 0
 
-# Firewalls
+# Obstacles
 pipe_w = 72
-pipe_gap = 180
+pipe_gap = 220
 pipe_speed_base = -3
 pipe_speed = pipe_speed_base
 pipes = []
 pipe_rate = 110
 frame_count = 0
 
-# Exploits
+# Powerups
 powerups = []
 shield_on = False
 slowmo_time = 0
@@ -84,6 +97,7 @@ def make_sound(freq, dur):
     try: return pygame.mixer.Sound(buffer=samps)
     except: return None
 
+# Samples
 s_flap = make_sound(900, 45)
 s_score = make_sound(1400, 80)
 s_crash = make_sound(360, 220)
@@ -96,37 +110,36 @@ def load_hs():
     with open(HS_FILE, "r") as f:
         try: return int(f.read().strip())
         except: return 0
-
+# Save
 def save_hs(hs):
     with open(HS_FILE, "w") as f: f.write(str(hs))
 
-# Drawing
+# Text
 def draw_text(text, font, color, surf, x, y, center=True):
     obj = font.render(text, True, color)
     rect = obj.get_rect(center=(x,y)) if center else obj.get_rect(topleft=(x,y))
     if not center and x > SCREEN_W / 2: rect.topright = (x,y)
     surf.blit(obj, rect)
 
+# Background
 def create_static_binary_background():
     bg_surf = pygame.Surface((SCREEN_W, SCREEN_H))
     bg_surf.fill(BLACK)
     char_width, char_height = 10, 15
     for x in range(0, SCREEN_W, char_width):
         for y in range(0, SCREEN_H, char_height):
-            # Reduce density to create gaps in the columns
-            if random.randint(1, 10) > 4: # 60% chance to draw a character
+            if random.randint(1, 10) > 4:
                 char = random.choice(['0', '1'])
-                # Most characters are dim, with a small chance for a bright one
                 if random.randint(1, 20) == 1:
-                    color = (150, 255, 150) # Bright highlight
+                    color = (150, 255, 150)
                 else:
-                    brightness = random.randint(50, 110) # Dimmer base
+                    brightness = random.randint(50, 110)
                     color = (0, brightness, 0)
-                
                 char_render = font_binary.render(char, True, color)
                 bg_surf.blit(char_render, (x, y))
     return bg_surf
 
+# Ranking
 def get_level_info(s):
     current_rank = ("NOVICE", 0, WHITE)
     next_rank = LEVELS[0]
@@ -145,27 +158,104 @@ def get_level_info(s):
             break
     return current_rank, next_rank, prev_threshold
 
+# DrawPlayer
 def draw_player(x, y):
-    pygame.draw.circle(screen, PINK, (int(x), int(y)), player_rad + 2)
-    glow = pygame.Surface((player_rad * 2 + 6, player_rad * 2 + 6), pygame.SRCALPHA)
-    pygame.draw.circle(glow, (255, 255, 255, 40), (player_rad + 3, player_rad + 3), player_rad + 4)
-    screen.blit(glow, (int(x - player_rad) - 3, int(y - player_rad) - 3))
-    pygame.draw.circle(screen, PINK, (int(x), int(y)), player_rad)
-    pts = [(x + player_rad, y), (x + player_rad - 6, y - 6), (x + player_rad - 6, y + 6)]
-    pygame.draw.polygon(screen, (255, 200, 255), pts)
+    global player_wing_up, wing_frame_counter
+    
+    # Animate
+    if not paused and active:
+        wing_frame_counter += 1
+        if wing_frame_counter >= 5:
+            player_wing_up = not player_wing_up
+            wing_frame_counter = 0
+
+    # Body
+    body_pts = [(x - player_rad, y), (x + player_rad * 1.5, y - player_rad), (x + player_rad * 1.5, y + player_rad)]
+    pygame.draw.polygon(screen, BIRD_COLOR, body_pts)
+    pygame.draw.polygon(screen, WHITE, body_pts, 2)
+    
+    # Wing
+    wing_y_offset = -8 if player_wing_up else 8
+    wing_pts = [(x + 2, y + wing_y_offset), (x - player_rad, y + wing_y_offset + 5), (x + 2, y + wing_y_offset + 10)]
+    pygame.draw.polygon(screen, (255, 100, 0), wing_pts)
+
+    # Beak
+    beak_pts = [(x + player_rad * 1.3, y), (x + player_rad * 2.0, y - 5), (x + player_rad * 2.0, y + 5)]
+    pygame.draw.polygon(screen, (255, 100, 0), beak_pts)
+    
+    # Eye
+    eye_center_x = int(x + player_rad * 0.8) 
+    eye_center_y = int(y - player_rad * 0.4) 
+    eye_radius = int(player_rad * 0.4)
+    pupil_radius = int(player_rad * 0.2)
+    pygame.draw.circle(screen, STUNNED_EYE_COLOR, (eye_center_x, eye_center_y), eye_radius)
+    pygame.draw.circle(screen, BLACK, (eye_center_x + int(pupil_radius * 0.5), eye_center_y), pupil_radius) 
+
+    # Joint
+    joint_length = 25
+    joint_height = 4
+    joint_x_offset = player_rad * 1.9
+    joint_y_offset = -1
+    joint_rect = pygame.Rect(x + joint_x_offset, y + joint_y_offset, joint_length, joint_height)
+    pygame.draw.rect(screen, (150, 150, 150), joint_rect) 
+    tip_width = 5
+    tip_rect = pygame.Rect(joint_rect.right - tip_width, joint_rect.y, tip_width, joint_height)
+    pygame.draw.rect(screen, RED, tip_rect)
+
+    # Shield
     if shield_on:
-        shield_surf = pygame.Surface((player_rad * 3, player_rad * 3), pygame.SRCALPHA)
-        pygame.draw.circle(shield_surf, (*SHIELD_COLOR, 80), (player_rad*1.5, player_rad*1.5), int(player_rad * 1.6), 3)
-        screen.blit(shield_surf, (int(x - player_rad * 1.5), int(y - player_rad * 1.5)))
+        shield_surf = pygame.Surface((player_rad * 4, player_rad * 4), pygame.SRCALPHA)
+        pygame.draw.rect(shield_surf, (*SHIELD_COLOR, 80), (10, 10, player_rad*3, player_rad*2.5), 3) 
+        screen.blit(shield_surf, (int(x - player_rad * 2), int(y - player_rad * 2)))
 
+# DrawPipe
 def draw_pipe(pipe):
-    for rect in [pipe['top_rect'], pipe['bottom_rect']]:
-        pygame.draw.rect(screen, RED, rect)
-        pygame.draw.rect(screen, (180, 30, 30), rect, 4)
-        for i in range(1,4):
-            y_off = int(rect.y + (rect.height / 4) * i)
-            pygame.draw.line(screen, (255, 100, 100), (rect.x + 6, y_off - 6), (rect.x + pipe_w - 6, y_off + 6), 1)
+    GLASS_THICKNESS = 4
+    BEER_PADDING = 3
+    FOAM_HEIGHT = 12
+    RIM_HEIGHT = 8
+    RIM_COLOR = BLACK 
 
+    # Top
+    top_rect = pipe['top_rect']
+    beer_fill_top = top_rect.inflate(-BEER_PADDING * 2, 0)
+    pygame.draw.rect(screen, BEER_COLOR, beer_fill_top)
+    pygame.draw.rect(screen, GLASS_COLOR, top_rect, GLASS_THICKNESS)
+    rim_rect_top = pygame.Rect(top_rect.x, top_rect.bottom - RIM_HEIGHT//2, top_rect.width, RIM_HEIGHT)
+    pygame.draw.ellipse(screen, RIM_COLOR, rim_rect_top)
+    
+    # Bubbles
+    for _ in range(15): 
+        rand_x = random.randint(beer_fill_top.left + 5, beer_fill_top.right - 5)
+        rand_y = random.randint(beer_fill_top.top + 5, beer_fill_top.bottom - 5)
+        pygame.draw.circle(screen, BEER_COLOR, (rand_x, rand_y), 2)
+        pygame.draw.circle(screen, BUBBLE_OUTLINE_COLOR, (rand_x, rand_y), 2, BUBBLE_OUTLINE_THICKNESS)
+
+    # Bottom
+    bottom_rect = pipe['bottom_rect']
+    beer_fill_bot = bottom_rect.inflate(-BEER_PADDING * 2, 0)
+    beer_fill_bot.y += FOAM_HEIGHT 
+    beer_fill_bot.height -= FOAM_HEIGHT 
+    pygame.draw.rect(screen, BEER_COLOR, beer_fill_bot)
+    pygame.draw.rect(screen, GLASS_COLOR, bottom_rect, GLASS_THICKNESS)
+    rim_rect_bot = pygame.Rect(bottom_rect.x, bottom_rect.y - RIM_HEIGHT//2, bottom_rect.width, RIM_HEIGHT)
+    pygame.draw.ellipse(screen, RIM_COLOR, rim_rect_bot)
+    
+    # More
+    for _ in range(15): 
+        rand_x = random.randint(beer_fill_bot.left + 5, beer_fill_bot.right - 5)
+        rand_y = random.randint(beer_fill_bot.top + 5, beer_fill_bot.bottom - 5)
+        pygame.draw.circle(screen, BEER_COLOR, (rand_x, rand_y), 2)
+        pygame.draw.circle(screen, BUBBLE_OUTLINE_COLOR, (rand_x, rand_y), 2, BUBBLE_OUTLINE_THICKNESS)
+
+    # Foam
+    foam_rect = pygame.Rect(bottom_rect.x, bottom_rect.y, bottom_rect.width, FOAM_HEIGHT)
+    foam_rect_inflated = foam_rect.inflate(8, 0)
+    foam_rect_inflated.centerx = bottom_rect.centerx
+    pygame.draw.rect(screen, FOAM_COLOR, foam_rect_inflated) 
+    pygame.draw.line(screen, WHITE, (foam_rect_inflated.left + 2, foam_rect_inflated.top + 2), (foam_rect_inflated.right - 2, foam_rect_inflated.top + 2), 3)
+
+# DrawPowerups
 def draw_powerups():
     for p in powerups:
         r = p['rect']
@@ -173,6 +263,7 @@ def draw_powerups():
         pygame.draw.ellipse(screen, color, r)
         pygame.draw.ellipse(screen, WHITE, r, 1)
 
+# HUD
 def draw_hud(s, hs):
     hud = pygame.Surface((SCREEN_W, 70), pygame.SRCALPHA)
     hud.fill((10, 10, 10, 120))
@@ -192,7 +283,7 @@ def draw_hud(s, hs):
     pygame.draw.rect(screen, BLUE, (20, 40, int(bar_w * pct), 12))
     draw_text(f"NEXT RANK: {next_rank_name}", font_small, WHITE, screen, SCREEN_W // 2, 65)
 
-# Game Logic
+# Create
 def create_pipe():
     h = random.randint(120, SCREEN_H - 120 - pipe_gap)
     top = pygame.Rect(SCREEN_W, 0, pipe_w, h)
@@ -202,6 +293,7 @@ def create_pipe():
     moving = random.choice([True, False, False])
     return {'top_rect': top, 'bottom_rect': bot, 'passed': False, 'moving': moving, 'move_dir': random.choice([-1, 1]), 'move_speed': random.uniform(0.4, 1.6)}
 
+# Update
 def update_physics():
     for p in pipes + powerups:
         if 'rect' in p: p['rect'].x += pipe_speed
@@ -213,12 +305,15 @@ def update_physics():
         if p['moving']:
             p['top_rect'].y += p['move_speed'] * p['move_dir']
             p['bottom_rect'].y += p['move_speed'] * p['move_dir']
-            if p['top_rect'].height < 80 or p['bottom_rect'].top > SCREEN_H - 80:
+            if p['top_rect'].bottom < 80 or p['bottom_rect'].top > SCREEN_H - 80:
                 p['move_dir'] *= -1
 
+# Collide
 def check_collisions():
     global shield_on, slowmo_time, shrink_time, player_y
-    pr = pygame.Rect(player_x - player_rad, player_y - player_rad, player_rad * 2, player_rad * 2)
+    player_body_width = player_rad * 3
+    player_body_height = player_rad * 2
+    pr = pygame.Rect(player_x - player_rad, player_y - player_rad, player_body_width, player_body_height)
 
     for p in powerups[:]:
         if pr.colliderect(p['rect']):
@@ -233,7 +328,6 @@ def check_collisions():
             if shield_on:
                 shield_on = False
                 if s_shield_break: s_shield_break.play()
-                pipes.remove(pipe)
                 return False
             return True
 
@@ -246,6 +340,7 @@ def check_collisions():
         return True
     return False
 
+# Handle
 def handle_powerups():
     global slowmo_time, shrink_time, player_rad, gravity, pipe_speed
     if slowmo_time > 0:
@@ -260,17 +355,20 @@ def handle_powerups():
     else:
         player_rad = 14
 
+# Reset
 def reset():
     global player_y, player_vel, pipes, score, active, frame_count, pipe_speed
     global powerups, shield_on, slowmo_time, shrink_time, player_rad, paused, glitch_fx
+    global player_wing_up, wing_frame_counter
     player_y, player_vel, score, frame_count = SCREEN_H // 2, 0, 0, 0
     pipes, powerups = [], []
     pipe_speed = pipe_speed_base
     shield_on, slowmo_time, shrink_time = False, 0, 0
     player_rad = 14
     active, paused, glitch_fx = True, False, 0
+    player_wing_up, wing_frame_counter = True, 0
 
-# Game Loop
+# Loop
 high_score = load_hs()
 static_background = create_static_binary_background()
 running = True
@@ -289,10 +387,11 @@ while running:
             if event.key == pygame.K_p and active:
                 paused = not paused
 
-    # Background
+    # Scene
     screen.blit(static_background, (0, 0))
 
     if active:
+        # Gameplay
         if not paused:
             # Physics
             player_vel += gravity
@@ -304,14 +403,14 @@ while running:
             frame_count += 1
             update_physics()
 
-            # Score
+            # Scoring
             for p in pipes:
                 if not p['passed'] and p['top_rect'].centerx < player_x:
                     p['passed'] = True
                     score += 1
                     if s_score: s_score.play()
 
-            # Collide
+            # Crash
             if check_collisions():
                 if s_crash: s_crash.play()
                 active = False
@@ -320,16 +419,17 @@ while running:
                     high_score = score
                     save_hs(high_score)
 
-        # Draw
-        draw_player(player_x, player_y)
+        # Render
         for pipe in pipes: draw_pipe(pipe)
         draw_powerups()
+        draw_player(player_x, player_y)
         draw_hud(score, high_score)
         draw_text(str(score), font_big, GREEN, screen, SCREEN_W // 2, 120)
         if paused: draw_text("PAUSED", font_big, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2)
 
     else: 
-        draw_text("FLAPPY PWN", font_big, PINK, screen, SCREEN_W // 2, SCREEN_H // 6)
+        # Menu
+        draw_text("FLAPPY STONER", font_big, PINK, screen, SCREEN_W // 2, SCREEN_H // 6)
         draw_text("Press SPACE to Inject Packet", font_med, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2)
         draw_text("P to Pause. ESC to Quit.", font_small, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2 + 40)
         draw_text(f"High: {high_score}", font_med, GREEN, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 60)
@@ -338,9 +438,9 @@ while running:
             final_rank, _, _ = get_level_info(score)
             rank_name, _, rank_color = final_rank
             if rank_name != "NOVICE":
-                 draw_text(f"RANK: {rank_name}", font_med, rank_color, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 20)
+                draw_text(f"RANK: {rank_name}", font_med, rank_color, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 20)
 
- # FX
+    # Effects
     if glitch_fx > 0:
         g_surf = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
         g_surf.fill((255, 20, 20, 40 + glitch_fx * 6))
@@ -353,11 +453,11 @@ while running:
     pipes = [p for p in pipes if p['top_rect'].right > -50]
     powerups = [p for p in powerups if p['rect'].right > -30]
 
+    # Display
     pygame.display.update()
     clock.tick(FPS)
 
+# Persist
 save_hs(high_score)
 pygame.quit()
 sys.exit()
-
-
