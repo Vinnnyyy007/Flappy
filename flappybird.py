@@ -148,7 +148,7 @@ def get_level_info(s):
             break
     return current_rank, next_rank, prev_threshold
 
-# MODIFIED: Draw Player function to draw a bird-like triangle with wings
+# MODIFIED: Draw Player function to draw a bird-like triangle with wings and an eye
 def draw_player(x, y):
     global player_wing_up, wing_frame_counter
     
@@ -161,7 +161,7 @@ def draw_player(x, y):
 
     # 1. Main Bird Body (Triangle/Wedge shape)
     body_pts = [
-        (x - player_rad, y),              # Left tip
+        (x - player_rad, y),               # Left tip
         (x + player_rad * 1.5, y - player_rad), # Right top corner
         (x + player_rad * 1.5, y + player_rad)  # Right bottom corner
     ]
@@ -172,21 +172,30 @@ def draw_player(x, y):
     # 2. Wing (Smaller triangle that flaps)
     wing_y_offset = -8 if player_wing_up else 8
     wing_pts = [
-        (x + 2, y + wing_y_offset),      # Pivot near body center
+        (x + 2, y + wing_y_offset),       # Pivot near body center
         (x - player_rad, y + wing_y_offset + 5),  # Trailing edge top
-        (x + 2, y + wing_y_offset + 10)  # Trailing edge bottom
+        (x + 2, y + wing_y_offset + 10)   # Trailing edge bottom
     ]
     pygame.draw.polygon(screen, (255, 100, 0), wing_pts) # Orange/Beak color for wing
 
-    # 3. Beak (Small triangle on the front)
+    # 3. Beak (Small triangle on the front) - Adjusted slightly for eye
     beak_pts = [
-        (x + player_rad * 1.5, y), 
-        (x + player_rad * 2.2, y - 5), 
-        (x + player_rad * 2.2, y + 5)
+        (x + player_rad * 1.3, y),        # Closer to the body
+        (x + player_rad * 2.0, y - 5),    # Shorter beak
+        (x + player_rad * 2.0, y + 5)
     ]
     pygame.draw.polygon(screen, (255, 100, 0), beak_pts)
     
-    # 4. Shield Effect (if on)
+    # 4. Eye (White circle with black pupil)
+    eye_center_x = int(x + player_rad * 0.8) # Position eye slightly back from beak
+    eye_center_y = int(y - player_rad * 0.4) # Position eye slightly above center
+    eye_radius = int(player_rad * 0.4)
+    pupil_radius = int(player_rad * 0.2)
+
+    pygame.draw.circle(screen, WHITE, (eye_center_x, eye_center_y), eye_radius)
+    pygame.draw.circle(screen, BLACK, (eye_center_x + int(pupil_radius * 0.5), eye_center_y), pupil_radius) # Pupil slightly offset for cartoonish look
+
+    # 5. Shield Effect (if on)
     if shield_on:
         shield_surf = pygame.Surface((player_rad * 4, player_rad * 4), pygame.SRCALPHA)
         # Adjusted shield size for the longer bird shape
