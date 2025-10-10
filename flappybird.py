@@ -8,7 +8,7 @@ pygame.init()
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 
 # Config
-SCREEN_W, SCREEN_H = 400, 600
+SCREEN_W, SCREEN_H = 500, 800
 FPS = 60
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
 pygame.display.set_caption("Flappy Pwn")
