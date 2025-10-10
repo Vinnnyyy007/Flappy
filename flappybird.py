@@ -36,6 +36,9 @@ BIRD_COLOR = (255, 255, 0) # Bright Yellow for the bird
 BEER_COLOR = (255, 191, 0) # Amber/Gold color for the liquid
 FOAM_COLOR = (255, 255, 255) # White color for foam
 GLASS_COLOR = (120, 120, 120) # Darker grey for the glass/pitcher outline
+BUBBLE_COLOR = (255, 230, 180) # Light color for carbonation bubbles (will be filled with beer color)
+BUBBLE_OUTLINE_COLOR = BLACK # Changed to BLACK for defined bubbles
+BUBBLE_OUTLINE_THICKNESS = 1 # Thickness of the bubble outline
 
 # Ranks & Levels
 LEVELS = [
@@ -54,8 +57,8 @@ player_rad = 14
 gravity = 0.5
 lift = -10
 player_vel = 0
-player_wing_up = True # NEW: Flapping state
-wing_frame_counter = 0 # NEW: Flapping timer
+player_wing_up = True # Flapping state
+wing_frame_counter = 0 # Flapping timer
 
 # Firewalls
 pipe_w = 72
@@ -207,11 +210,13 @@ def draw_player(x, y):
         pygame.draw.rect(shield_surf, (*SHIELD_COLOR, 80), (10, 10, player_rad*3, player_rad*2.5), 3) 
         screen.blit(shield_surf, (int(x - player_rad * 2), int(y - player_rad * 2)))
 
-# REPLACED: Draw the pipe obstacles as Beer Pitchers/Cylinders
+# MODIFIED: Draw the pipe obstacles as Beer Pitchers/Cylinders with circular tops and carbonation
 def draw_pipe(pipe):
     GLASS_THICKNESS = 4
     BEER_PADDING = 3
     FOAM_HEIGHT = 12
+    RIM_HEIGHT = 8 # Height of the ellipse used for the circular rim
+    RIM_COLOR = BLACK 
 
     # --- TOP Pipe (Upside-down Beer Pitcher) ---
     top_rect = pipe['top_rect']
@@ -223,9 +228,19 @@ def draw_pipe(pipe):
     # 2. Draw the Glass Outline/Body (Darker color)
     pygame.draw.rect(screen, GLASS_COLOR, top_rect, GLASS_THICKNESS)
     
-    # 3. Draw the bottom edge/rim (The lip of the upside-down pitcher)
-    rim_rect_top = pygame.Rect(top_rect.x, top_rect.bottom - GLASS_THICKNESS, top_rect.width, GLASS_THICKNESS)
-    pygame.draw.rect(screen, BLACK, rim_rect_top)
+    # 3. Draw the bottom edge/rim (Circular effect for the upside-down opening)
+    # Draw a solid ellipse to represent the circular rim
+    rim_rect_top = pygame.Rect(top_rect.x, top_rect.bottom - RIM_HEIGHT//2, top_rect.width, RIM_HEIGHT)
+    pygame.draw.ellipse(screen, RIM_COLOR, rim_rect_top)
+    
+    # 4. Add Carbonation Bubbles (Hollow circles with black outline)
+    # Draw small, hollow circles randomly inside the beer contents
+    for _ in range(15): 
+        rand_x = random.randint(beer_fill_top.left + 5, beer_fill_top.right - 5)
+        rand_y = random.randint(beer_fill_top.top + 5, beer_fill_top.bottom - 5)
+        # Draw a filled circle with beer color, then an outline with BUBBLE_OUTLINE_COLOR
+        pygame.draw.circle(screen, BEER_COLOR, (rand_x, rand_y), 2)
+        pygame.draw.circle(screen, BUBBLE_OUTLINE_COLOR, (rand_x, rand_y), 2, BUBBLE_OUTLINE_THICKNESS)
 
 
     # --- BOTTOM Pipe (Right-side-up Beer Pitcher) ---
@@ -241,7 +256,20 @@ def draw_pipe(pipe):
     # 2. Draw the Glass Outline/Body (Darker color)
     pygame.draw.rect(screen, GLASS_COLOR, bottom_rect, GLASS_THICKNESS)
     
-    # 3. Draw the Foam on top (Slightly wider than the glass)
+    # 3. Draw the Top/Rim (Circular effect for the opening)
+    # Draw a solid ellipse to represent the circular rim
+    rim_rect_bot = pygame.Rect(bottom_rect.x, bottom_rect.y - RIM_HEIGHT//2, bottom_rect.width, RIM_HEIGHT)
+    pygame.draw.ellipse(screen, RIM_COLOR, rim_rect_bot)
+    
+    # 4. Add Carbonation Bubbles (Hollow circles with black outline)
+    for _ in range(15): 
+        rand_x = random.randint(beer_fill_bot.left + 5, beer_fill_bot.right - 5)
+        rand_y = random.randint(beer_fill_bot.top + 5, beer_fill_bot.bottom - 5)
+        pygame.draw.circle(screen, BEER_COLOR, (rand_x, rand_y), 2)
+        pygame.draw.circle(screen, BUBBLE_OUTLINE_COLOR, (rand_x, rand_y), 2, BUBBLE_OUTLINE_THICKNESS)
+
+    # 5. Draw the Foam on top (Slightly wider than the glass)
+    # The foam is drawn last to cover the rim, making it look like a full pour
     foam_rect = pygame.Rect(bottom_rect.x, bottom_rect.y, bottom_rect.width, FOAM_HEIGHT)
     foam_rect_inflated = foam_rect.inflate(8, 0)
     foam_rect_inflated.centerx = bottom_rect.centerx
@@ -251,9 +279,9 @@ def draw_pipe(pipe):
     
     # Add a white highlight line for foam peak texture
     pygame.draw.line(screen, WHITE, 
-                     (foam_rect_inflated.left + 2, foam_rect_inflated.top + 2), 
-                     (foam_rect_inflated.right - 2, foam_rect_inflated.top + 2), 
-                     3)
+                      (foam_rect_inflated.left + 2, foam_rect_inflated.top + 2), 
+                      (foam_rect_inflated.right - 2, foam_rect_inflated.top + 2), 
+                      3)
 
 
 def draw_powerups():
@@ -308,7 +336,7 @@ def update_physics():
 
 def check_collisions():
     global shield_on, slowmo_time, shrink_time, player_y
-    # MODIFIED: Collision box matches the bird's bounding box
+    # Collision box matches the bird's bounding box
     player_body_width = player_rad * 3
     player_body_height = player_rad * 2
     pr = pygame.Rect(player_x - player_rad, player_y - player_rad, player_body_width, player_body_height)
