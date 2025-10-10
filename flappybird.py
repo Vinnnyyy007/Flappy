@@ -32,6 +32,11 @@ SLOWMO_COLOR = (255, 165, 0)
 CLOAK_COLOR = (148, 0, 211)
 BIRD_COLOR = (255, 255, 0) # Bright Yellow for the bird
 
+# NEW BEER COLORS for the obstacles
+BEER_COLOR = (255, 191, 0) # Amber/Gold color for the liquid
+FOAM_COLOR = (255, 255, 255) # White color for foam
+GLASS_COLOR = (120, 120, 120) # Darker grey for the glass/pitcher outline
+
 # Ranks & Levels
 LEVELS = [
     ("USER TOKEN", 10, CLOAK_COLOR),
@@ -161,9 +166,9 @@ def draw_player(x, y):
 
     # 1. Main Bird Body (Triangle/Wedge shape)
     body_pts = [
-        (x - player_rad, y),               # Left tip
-        (x + player_rad * 1.5, y - player_rad), # Right top corner
-        (x + player_rad * 1.5, y + player_rad)  # Right bottom corner
+        (x - player_rad, y), 
+        (x + player_rad * 1.5, y - player_rad), 
+        (x + player_rad * 1.5, y + player_rad) 
     ]
     pygame.draw.polygon(screen, BIRD_COLOR, body_pts)
     # Outline
@@ -172,28 +177,28 @@ def draw_player(x, y):
     # 2. Wing (Smaller triangle that flaps)
     wing_y_offset = -8 if player_wing_up else 8
     wing_pts = [
-        (x + 2, y + wing_y_offset),       # Pivot near body center
-        (x - player_rad, y + wing_y_offset + 5),  # Trailing edge top
-        (x + 2, y + wing_y_offset + 10)   # Trailing edge bottom
+        (x + 2, y + wing_y_offset), 
+        (x - player_rad, y + wing_y_offset + 5), 
+        (x + 2, y + wing_y_offset + 10) 
     ]
     pygame.draw.polygon(screen, (255, 100, 0), wing_pts) # Orange/Beak color for wing
 
     # 3. Beak (Small triangle on the front) - Adjusted slightly for eye
     beak_pts = [
-        (x + player_rad * 1.3, y),        # Closer to the body
-        (x + player_rad * 2.0, y - 5),    # Shorter beak
+        (x + player_rad * 1.3, y), 
+        (x + player_rad * 2.0, y - 5), 
         (x + player_rad * 2.0, y + 5)
     ]
     pygame.draw.polygon(screen, (255, 100, 0), beak_pts)
     
     # 4. Eye (White circle with black pupil)
-    eye_center_x = int(x + player_rad * 0.8) # Position eye slightly back from beak
-    eye_center_y = int(y - player_rad * 0.4) # Position eye slightly above center
+    eye_center_x = int(x + player_rad * 0.8) 
+    eye_center_y = int(y - player_rad * 0.4) 
     eye_radius = int(player_rad * 0.4)
     pupil_radius = int(player_rad * 0.2)
 
     pygame.draw.circle(screen, WHITE, (eye_center_x, eye_center_y), eye_radius)
-    pygame.draw.circle(screen, BLACK, (eye_center_x + int(pupil_radius * 0.5), eye_center_y), pupil_radius) # Pupil slightly offset for cartoonish look
+    pygame.draw.circle(screen, BLACK, (eye_center_x + int(pupil_radius * 0.5), eye_center_y), pupil_radius) 
 
     # 5. Shield Effect (if on)
     if shield_on:
@@ -202,13 +207,54 @@ def draw_player(x, y):
         pygame.draw.rect(shield_surf, (*SHIELD_COLOR, 80), (10, 10, player_rad*3, player_rad*2.5), 3) 
         screen.blit(shield_surf, (int(x - player_rad * 2), int(y - player_rad * 2)))
 
+# REPLACED: Draw the pipe obstacles as Beer Pitchers/Cylinders
 def draw_pipe(pipe):
-    for rect in [pipe['top_rect'], pipe['bottom_rect']]:
-        pygame.draw.rect(screen, RED, rect)
-        pygame.draw.rect(screen, (180, 30, 30), rect, 4)
-        for i in range(1,4):
-            y_off = int(rect.y + (rect.height / 4) * i)
-            pygame.draw.line(screen, (255, 100, 100), (rect.x + 6, y_off - 6), (rect.x + pipe_w - 6, y_off + 6), 1)
+    GLASS_THICKNESS = 4
+    BEER_PADDING = 3
+    FOAM_HEIGHT = 12
+
+    # --- TOP Pipe (Upside-down Beer Pitcher) ---
+    top_rect = pipe['top_rect']
+    
+    # 1. Draw the Beer contents (Amber/Gold color)
+    beer_fill_top = top_rect.inflate(-BEER_PADDING * 2, 0)
+    pygame.draw.rect(screen, BEER_COLOR, beer_fill_top)
+    
+    # 2. Draw the Glass Outline/Body (Darker color)
+    pygame.draw.rect(screen, GLASS_COLOR, top_rect, GLASS_THICKNESS)
+    
+    # 3. Draw the bottom edge/rim (The lip of the upside-down pitcher)
+    rim_rect_top = pygame.Rect(top_rect.x, top_rect.bottom - GLASS_THICKNESS, top_rect.width, GLASS_THICKNESS)
+    pygame.draw.rect(screen, BLACK, rim_rect_top)
+
+
+    # --- BOTTOM Pipe (Right-side-up Beer Pitcher) ---
+    bottom_rect = pipe['bottom_rect']
+    
+    # 1. Draw the Beer contents (Amber/Gold color)
+    beer_fill_bot = bottom_rect.inflate(-BEER_PADDING * 2, 0)
+    # Adjust height/position for the foam layer
+    beer_fill_bot.y += FOAM_HEIGHT 
+    beer_fill_bot.height -= FOAM_HEIGHT 
+    pygame.draw.rect(screen, BEER_COLOR, beer_fill_bot)
+    
+    # 2. Draw the Glass Outline/Body (Darker color)
+    pygame.draw.rect(screen, GLASS_COLOR, bottom_rect, GLASS_THICKNESS)
+    
+    # 3. Draw the Foam on top (Slightly wider than the glass)
+    foam_rect = pygame.Rect(bottom_rect.x, bottom_rect.y, bottom_rect.width, FOAM_HEIGHT)
+    foam_rect_inflated = foam_rect.inflate(8, 0)
+    foam_rect_inflated.centerx = bottom_rect.centerx
+    
+    # Draw the main foam layer (White)
+    pygame.draw.rect(screen, FOAM_COLOR, foam_rect_inflated) 
+    
+    # Add a white highlight line for foam peak texture
+    pygame.draw.line(screen, WHITE, 
+                     (foam_rect_inflated.left + 2, foam_rect_inflated.top + 2), 
+                     (foam_rect_inflated.right - 2, foam_rect_inflated.top + 2), 
+                     3)
+
 
 def draw_powerups():
     for p in powerups:
@@ -263,7 +309,9 @@ def update_physics():
 def check_collisions():
     global shield_on, slowmo_time, shrink_time, player_y
     # MODIFIED: Collision box matches the bird's bounding box
-    pr = pygame.Rect(player_x - player_rad, player_y - player_rad, player_rad * 3, player_rad * 2)
+    player_body_width = player_rad * 3
+    player_body_height = player_rad * 2
+    pr = pygame.Rect(player_x - player_rad, player_y - player_rad, player_body_width, player_body_height)
 
     for p in powerups[:]:
         if pr.colliderect(p['rect']):
