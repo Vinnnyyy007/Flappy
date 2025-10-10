@@ -30,6 +30,7 @@ RED = (220, 40, 40)
 SHIELD_COLOR = (60, 180, 255)
 SLOWMO_COLOR = (255, 165, 0)
 CLOAK_COLOR = (148, 0, 211)
+BIRD_COLOR = (255, 255, 0) # Bright Yellow for the bird
 
 # Ranks & Levels
 LEVELS = [
@@ -48,6 +49,8 @@ player_rad = 14
 gravity = 0.5
 lift = -10
 player_vel = 0
+player_wing_up = True # NEW: Flapping state
+wing_frame_counter = 0 # NEW: Flapping timer
 
 # Firewalls
 pipe_w = 72
@@ -145,18 +148,50 @@ def get_level_info(s):
             break
     return current_rank, next_rank, prev_threshold
 
+# MODIFIED: Draw Player function to draw a bird-like triangle with wings
 def draw_player(x, y):
-    pygame.draw.circle(screen, PINK, (int(x), int(y)), player_rad + 2)
-    glow = pygame.Surface((player_rad * 2 + 6, player_rad * 2 + 6), pygame.SRCALPHA)
-    pygame.draw.circle(glow, (255, 255, 255, 40), (player_rad + 3, player_rad + 3), player_rad + 4)
-    screen.blit(glow, (int(x - player_rad) - 3, int(y - player_rad) - 3))
-    pygame.draw.circle(screen, PINK, (int(x), int(y)), player_rad)
-    pts = [(x + player_rad, y), (x + player_rad - 6, y - 6), (x + player_rad - 6, y + 6)]
-    pygame.draw.polygon(screen, (255, 200, 255), pts)
+    global player_wing_up, wing_frame_counter
+    
+    # Rotate wing state every few frames for a flapping animation
+    if not paused and active:
+        wing_frame_counter += 1
+        if wing_frame_counter >= 5: # Flap every 5 frames
+            player_wing_up = not player_wing_up
+            wing_frame_counter = 0
+
+    # 1. Main Bird Body (Triangle/Wedge shape)
+    body_pts = [
+        (x - player_rad, y),              # Left tip
+        (x + player_rad * 1.5, y - player_rad), # Right top corner
+        (x + player_rad * 1.5, y + player_rad)  # Right bottom corner
+    ]
+    pygame.draw.polygon(screen, BIRD_COLOR, body_pts)
+    # Outline
+    pygame.draw.polygon(screen, WHITE, body_pts, 2)
+    
+    # 2. Wing (Smaller triangle that flaps)
+    wing_y_offset = -8 if player_wing_up else 8
+    wing_pts = [
+        (x + 2, y + wing_y_offset),      # Pivot near body center
+        (x - player_rad, y + wing_y_offset + 5),  # Trailing edge top
+        (x + 2, y + wing_y_offset + 10)  # Trailing edge bottom
+    ]
+    pygame.draw.polygon(screen, (255, 100, 0), wing_pts) # Orange/Beak color for wing
+
+    # 3. Beak (Small triangle on the front)
+    beak_pts = [
+        (x + player_rad * 1.5, y), 
+        (x + player_rad * 2.2, y - 5), 
+        (x + player_rad * 2.2, y + 5)
+    ]
+    pygame.draw.polygon(screen, (255, 100, 0), beak_pts)
+    
+    # 4. Shield Effect (if on)
     if shield_on:
-        shield_surf = pygame.Surface((player_rad * 3, player_rad * 3), pygame.SRCALPHA)
-        pygame.draw.circle(shield_surf, (*SHIELD_COLOR, 80), (player_rad*1.5, player_rad*1.5), int(player_rad * 1.6), 3)
-        screen.blit(shield_surf, (int(x - player_rad * 1.5), int(y - player_rad * 1.5)))
+        shield_surf = pygame.Surface((player_rad * 4, player_rad * 4), pygame.SRCALPHA)
+        # Adjusted shield size for the longer bird shape
+        pygame.draw.rect(shield_surf, (*SHIELD_COLOR, 80), (10, 10, player_rad*3, player_rad*2.5), 3) 
+        screen.blit(shield_surf, (int(x - player_rad * 2), int(y - player_rad * 2)))
 
 def draw_pipe(pipe):
     for rect in [pipe['top_rect'], pipe['bottom_rect']]:
@@ -213,12 +248,13 @@ def update_physics():
         if p['moving']:
             p['top_rect'].y += p['move_speed'] * p['move_dir']
             p['bottom_rect'].y += p['move_speed'] * p['move_dir']
-            if p['top_rect'].height < 80 or p['bottom_rect'].top > SCREEN_H - 80:
+            if p['top_rect'].bottom < 80 or p['bottom_rect'].top > SCREEN_H - 80:
                 p['move_dir'] *= -1
 
 def check_collisions():
     global shield_on, slowmo_time, shrink_time, player_y
-    pr = pygame.Rect(player_x - player_rad, player_y - player_rad, player_rad * 2, player_rad * 2)
+    # MODIFIED: Collision box matches the bird's bounding box
+    pr = pygame.Rect(player_x - player_rad, player_y - player_rad, player_rad * 3, player_rad * 2)
 
     for p in powerups[:]:
         if pr.colliderect(p['rect']):
@@ -233,9 +269,8 @@ def check_collisions():
             if shield_on:
                 shield_on = False
                 if s_shield_break: s_shield_break.play()
-                pipes.remove(pipe)
-                return False
-            return True
+                return False # Saved by shield
+            return True # Death
 
     if not 0 <= player_y <= SCREEN_H:
         if shield_on:
@@ -263,12 +298,14 @@ def handle_powerups():
 def reset():
     global player_y, player_vel, pipes, score, active, frame_count, pipe_speed
     global powerups, shield_on, slowmo_time, shrink_time, player_rad, paused, glitch_fx
+    global player_wing_up, wing_frame_counter # Reset animation state
     player_y, player_vel, score, frame_count = SCREEN_H // 2, 0, 0, 0
     pipes, powerups = [], []
     pipe_speed = pipe_speed_base
     shield_on, slowmo_time, shrink_time = False, 0, 0
     player_rad = 14
     active, paused, glitch_fx = True, False, 0
+    player_wing_up, wing_frame_counter = True, 0 # Initialize animation
 
 # Game Loop
 high_score = load_hs()
@@ -321,9 +358,9 @@ while running:
                     save_hs(high_score)
 
         # Draw
-        draw_player(player_x, player_y)
         for pipe in pipes: draw_pipe(pipe)
         draw_powerups()
+        draw_player(player_x, player_y) # Draw player after pipes/powerups so the bird is on top
         draw_hud(score, high_score)
         draw_text(str(score), font_big, GREEN, screen, SCREEN_W // 2, 120)
         if paused: draw_text("PAUSED", font_big, WHITE, screen, SCREEN_W // 2, SCREEN_H // 2)
@@ -338,9 +375,9 @@ while running:
             final_rank, _, _ = get_level_info(score)
             rank_name, _, rank_color = final_rank
             if rank_name != "NOVICE":
-                 draw_text(f"RANK: {rank_name}", font_med, rank_color, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 20)
+                draw_text(f"RANK: {rank_name}", font_med, rank_color, screen, SCREEN_W // 2, SCREEN_H * 2 / 3 + 20)
 
- # FX
+    # FX
     if glitch_fx > 0:
         g_surf = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
         g_surf.fill((255, 20, 20, 40 + glitch_fx * 6))
@@ -359,5 +396,3 @@ while running:
 save_hs(high_score)
 pygame.quit()
 sys.exit()
-
-
